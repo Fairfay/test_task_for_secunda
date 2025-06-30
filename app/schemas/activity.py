@@ -11,7 +11,14 @@ class ActivityBase(BaseModel):
 
 
 class ActivityCreate(ActivityBase):
-    pass
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "Молочная продукция",
+                "parent_id": None,
+                "level": 1
+            }
+        }
 
 
 class ActivityUpdate(BaseModel):
@@ -26,6 +33,23 @@ class ActivityRead(ActivityBase):
 
     class Config:
         from_attributes = True
+        schema_extra = {
+            "example": {
+                "id": 1,
+                "name": "Молочная продукция",
+                "parent_id": None,
+                "level": 1,
+                "children": [
+                    {
+                        "id": 2,
+                        "name": "Сыры",
+                        "parent_id": 1,
+                        "level": 2,
+                        "children": []
+                    }
+                ]
+            }
+        }
 
 
 if TYPE_CHECKING:

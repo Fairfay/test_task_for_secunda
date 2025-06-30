@@ -13,28 +13,62 @@ from app.core.db import get_async_session
 from app.models.activity import Activity
 from app.api.utils import not_found, apply_patch
 
-router = APIRouter(prefix="/activities", tags=["activities"])
+router = APIRouter(prefix="/activities", tags=["Деятельность"])
 
 
-@router.get("/", response_model=List[ActivityFlatRead])
+@router.get(
+    "/", response_model=List[ActivityFlatRead],
+    summary="Получить список видов деятельности"
+)
 async def get_activities(
     session: AsyncSession = Depends(get_async_session),
     limit: int = 100,
     offset: int = 0
 ):
-    """Получение список всех видов деятельности с пагинацией."""
+    """
+    Получает список всех видов деятельности с поддержкой пагинации.
+
+    ## Параметры
+    - **limit**: Максимальное количество возвращаемых записей (условно 100)
+    - **offset**: Смещение от начала списка (по умолчанию 0)
+
+    ## Пример ответа
+    ```json
+    [
+        {
+            "id": 1,
+            "name": "Пример деятельности",
+            "parent_id": null,
+            "level": 1
+        }
+    ]
+    ```
+    """
     result = await session.execute(
         select(Activity).offset(offset).limit(limit)
     )
     return result.scalars().all()
 
 
-@router.post("/", response_model=ActivityRead)
+@router.post(
+    "/", response_model=ActivityRead,
+    summary="Создать новый вид деятельности"
+)
 async def create_activity(
     activity_in: ActivityCreate,
     session: AsyncSession = Depends(get_async_session),
 ):
-    """Создание видов деятельности."""
+    """
+    Создает новый вид деятельности в системе.
+
+    ## Тело запроса
+    - **name**: Название вида деятельности (обязательное поле)
+    - **parent_id**: Идентификатор родительского вида деятельности
+    (опционально)
+
+    ## Возвращаемое значение
+    Возвращает созданный вид деятельности со всеми вложенными уровнями.
+    """
     db_activity = await activity_crud.create(activity_in, session)
     result = await session.execute(
         select(Activity)
@@ -49,22 +83,48 @@ async def create_activity(
     return activity_with_children
 
 
-@router.get("/tree", response_model=List[ActivityRead])
+@router.get(
+    "/tree", response_model=List[ActivityRead],
+    summary="Получить дерево видов деятельности"
+)
 async def get_activity_tree(
     session: AsyncSession = Depends(get_async_session),
     max_level: int = 3
 ):
-    """Получиение дерево видов деятельности с возможностью указания глубины."""
+    """
+    Получает иерархическое дерево всех видов деятельности с
+    возможностью ограничения глубины.
+
+    ## Параметры
+    - **max_level**: Максимальная глубина дерева (по умолчанию 3 уровня)
+
+    ## Структура ответа
+    Возвращает список корневых элементов дерева с
+    вложенными дочерними элементами.
+    """
     result = await session.execute(select(Activity))
     activities = result.scalars().all()
     return build_activity_tree(activities, max_level=max_level)
 
 
-@router.get("/{activity_id}", response_model=ActivityRead)
+@router.get(
+    "/{activity_id}", response_model=ActivityRead,
+    summary="Получить информацию о виде деятельности по ID"
+)
 async def get_activity(
     activity_id: int,
     session: AsyncSession = Depends(get_async_session)
 ):
+    """
+    Получает подробную информацию о конкретном виде деятельности,
+    включая его иерархию.
+
+    ## Параметры
+    - **activity_id**: Идентификатор запрашиваемого вида деятельности
+
+    ## Ошибки
+    - **404**: Вид деятельности с указанным ID не найден
+    """
     result = await session.execute(
         select(Activity)
         .options(
@@ -80,19 +140,35 @@ async def get_activity(
     return activity
 
 
-@router.patch("/{activity_id}", response_model=ActivityRead)
+@router.patch(
+    "/{activity_id}", response_model=ActivityRead,
+    summary="Обновить данные вида деятельности"
+)
 async def update_activity(
     activity_id: int,
     activity_in: ActivityUpdate,
     session: AsyncSession = Depends(get_async_session),
 ):
+    """
+    Обновляет информацию существующего вида деятельности.
+
+    ## Параметры
+    - **activity_id**: Идентификатор обновляемого вида деятельности
+    - **parent_id**: Новый идентификатор родителя (опционально)
+
+    ## Ограничения
+    - Запрещено устанавливать сам элемент как родителя (self-reference)
+    """
     db_activity = await activity_crud.get(activity_id, session)
     if not db_activity:
         not_found("Activity")
 
     # Self-reference запрет
     if activity_in.parent_id is not None and activity_in.parent_id == activity_id:
-        raise HTTPException(status_code=400, detail="Нельзя сделать элемент своим же родителем.")
+        raise HTTPException(
+            status_code=400,
+            detail="Нельзя сделать элемент своим же родителем."
+        )
 
     apply_patch(db_activity, activity_in)
     await session.commit()
@@ -110,12 +186,22 @@ async def update_activity(
     return activity_with_children
 
 
-@router.delete("/{activity_id}")
+@router.delete(
+    "/{activity_id}", summary="Удалить вид деятельности по ID"
+)
 async def delete_activity(
     activity_id: int,
     session: AsyncSession = Depends(get_async_session)
 ):
-    """Удаление вид деятельности по ID."""
+    """
+    Удаляет вид деятельности из системы.
+
+    ## Параметры
+    - **activity_id**: Идентификатор удаляемого вида деятельности
+
+    ## Ошибки
+    - **404**: Вид деятельности с указанным ID не найден
+    """
     db_activity = await activity_crud.get(activity_id, session)
     if not db_activity:
         not_found("Activity")

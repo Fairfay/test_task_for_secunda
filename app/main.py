@@ -18,6 +18,10 @@ async def startup():
     await fill_test_data()
 
 
-@app.get("/health", tags=["Health"])
+@app.get(
+    "/health", tags=["Health"],
+    summary="Проверка состояния API", response_description="Статус OK"
+)
 async def health_check():
+    """Проверка, что сервис запущен и работает корректно."""
     return {"status": "ok"}

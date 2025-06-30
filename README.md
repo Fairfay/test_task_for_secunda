@@ -40,6 +40,7 @@ docker compose -f docker-compose.prod.yml up --build
 ```
 
 Swagger находится по адресу - http://127.0.0.1:8000/docs
+
 Redoc находится по адресу - http://127.0.0.1:8000/redoc
 
 Для авторизации в swagger необходимо нажать authorize и в поле APIKeyHeader (apiKey) внести секретный ключ

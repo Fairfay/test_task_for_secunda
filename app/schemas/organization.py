@@ -23,7 +23,15 @@ class OrganizationCreate(OrganizationBase):
     """
     Схема для создания организации.
     """
-    pass
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "ООО Рога и Копыта",
+                "building_id": 1,
+                "phone_numbers": ["2-222-222", "3-333-333"],
+                "activity_ids": [1, 2]
+            }
+        }
 
 
 class OrganizationUpdate(BaseModel):
@@ -50,3 +58,23 @@ class OrganizationRead(BaseModel):
 
     class Config:
         from_attributes = True
+        schema_extra = {
+            "example": {
+                "id": 1,
+                "name": "ООО Рога и Копыта",
+                "building": {
+                    "id": 1,
+                    "address": "г. Москва, ул. Ленина 1, офис 3",
+                    "latitude": 55.7558,
+                    "longitude": 37.6176
+                },
+                "phones": [
+                    {"id": 1, "number": "2-222-222"},
+                    {"id": 2, "number": "3-333-333"}
+                ],
+                "activities": [
+                    {"id": 1, "name": "Молочная продукция", "parent_id": None, "level": 1},
+                    {"id": 2, "name": "Хлебобулочные изделия", "parent_id": None, "level": 1}
+                ]
+            }
+        }

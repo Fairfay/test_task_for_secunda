@@ -16,7 +16,14 @@ class BuildingCreate(BuildingBase):
     """
     Схема для создания здания.
     """
-    pass
+    class Config:
+        schema_extra = {
+            "example": {
+                "address": "г. Москва, ул. Ленина 1, офис 3",
+                "latitude": 55.7558,
+                "longitude": 37.6176
+            }
+        }
 
 
 class BuildingUpdate(BaseModel):
@@ -38,3 +45,11 @@ class BuildingRead(BuildingBase):
 
     class Config:
         from_attributes = True
+        schema_extra = {
+            "example": {
+                "id": 1,
+                "address": "г. Москва, ул. Ленина 1, офис 3",
+                "latitude": 55.7558,
+                "longitude": 37.6176
+            }
+        }

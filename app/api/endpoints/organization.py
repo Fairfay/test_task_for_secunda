@@ -17,7 +17,7 @@ from app.models.activity import Activity
 from app.models.building import Building
 from app.api.utils import org_with_all_options, get_object_or_404
 
-router = APIRouter(prefix="/organizations", tags=["organizations"])
+router = APIRouter(prefix="/organizations", tags=["Организация"])
 
 
 class LocationQuery(BaseModel):
@@ -96,7 +96,10 @@ async def _get_by_activity_id(
     return result.scalars().all()
 
 
-@router.get("/by_activity/{activity_id}", response_model=List[OrganizationRead])
+@router.get(
+    "/by_activity/{activity_id}", response_model=List[OrganizationRead],
+    summary="Получает организации по виду деятельности"
+)
 async def get_organizations_by_activity(
     activity_id: int,
     tree: bool = False,
@@ -105,8 +108,32 @@ async def get_organizations_by_activity(
     session: AsyncSession = Depends(get_async_session),
 ):
     """
-    Получение организации по виду деятельности
-    (с/без учета вложенности).
+    Получает список организаций, связанных с определенным видом деятельности.
+
+    ## Параметры
+    - **activity_id**: Идентификатор вида деятельности
+    - **tree**: Флаг использования иерархии
+    (True - с учетом вложенности, False - точное совпадение)
+    - **limit**: Максимальное количество возвращаемых записей
+    (по умолчанию 100)
+    - **offset**: Смещение от начала списка (по умолчанию 0)
+
+    ## Пример ответа
+    ```json
+    [
+        {
+            "id": 1,
+            "name": "Пример организации",
+            "building_id": 5,
+            "activities": [
+                {
+                    "id": 1,
+                    "name": "Основная деятельность"
+                }
+            ]
+        }
+    ]
+    ```
     """
     if tree:
         ids = await get_activity_descendants(activity_id, session)
@@ -123,22 +150,52 @@ async def get_organizations_by_activity(
     return result.scalars().all()
 
 
-@router.post("/", response_model=OrganizationRead)
+@router.post(
+    "/", response_model=OrganizationRead,
+    summary="Создание новой организации"
+)
 async def create_organization(
     organization_in: OrganizationCreate,
     session: AsyncSession = Depends(get_async_session),
 ):
-    """Создание организации."""
+    """
+    Создание новой организации в системе.
+
+    ## Тело запроса
+    - **name**: Название организации (обязательное поле)
+    - **building_id**: Идентификатор здания, где находится организация
+    (опционально)
+    - **activities**: Список идентификаторов видов деятельности
+    (массив из объектов ActivityBase)
+
+    ## Возвращаемое значение
+    Возвращает созданную организацию со всеми связанными данными.
+    """
     return await organization_crud.create(organization_in, session)
 
 
-@router.patch("/{organization_id}", response_model=OrganizationRead)
+@router.patch(
+    "/{organization_id}", response_model=OrganizationRead,
+    summary="Частично обновляет данные организации"
+)
 async def update_organization(
     organization_id: int,
     organization_in: OrganizationUpdate,
     session: AsyncSession = Depends(get_async_session),
 ):
-    """Частичное обновление организации."""
+    """
+    Частично обновляет информацию о существующей организации.
+
+    ## Параметры
+    - **organization_id**: Идентификатор обновляемой организации
+    - **name**: Новое название организации (опционально)
+    - **building_id**: Новый идентификатор здания (опционально)
+    - **activities**: Новый список идентификаторов видов деятельности
+    (опционально)
+
+    ## Ошибки
+    - **404**: Организация с указанным ID не найдена
+    """
     db_organization = await get_object_or_404(
         organization_crud, organization_id,
         session, "Organization"
@@ -150,12 +207,22 @@ async def update_organization(
     return updated
 
 
-@router.delete("/{organization_id}")
+@router.delete(
+    "/{organization_id}", summary="Удалить организацию по ID"
+)
 async def delete_organization(
     organization_id: int,
     session: AsyncSession = Depends(get_async_session)
 ):
-    """Удаление организации по ID."""
+    """
+    Удаляет организацию из системы.
+
+    ## Параметры
+    - **organization_id**: Идентификатор удаляемой организации
+
+    ## Ошибки
+    - **404**: Организация с указанным ID не найдена
+    """
     db_organization = await get_object_or_404(
         organization_crud, organization_id,
         session, "Organization"
@@ -167,7 +234,8 @@ async def delete_organization(
 
 @router.get(
     "/by_building/{building_id}",
-    response_model=List[OrganizationRead]
+    response_model=List[OrganizationRead],
+    summary="Получает организации по зданию"
 )
 async def get_organizations_by_building(
     building_id: int,
@@ -175,26 +243,68 @@ async def get_organizations_by_building(
     offset: int = 0,
     session: AsyncSession = Depends(get_async_session)
 ):
-    """Получение организации по зданию."""
+    """
+    Получает список организаций, расположенных в определенном здании.
+
+    ## Параметры
+    - **building_id**: Идентификатор здания
+    - **limit**: Максимальное количество возвращаемых записей
+    (по умолчанию 100)
+    - **offset**: Смещение от начала списка (по умолчанию 0)
+
+    ## Пример ответа
+    ```json
+    [
+        {
+            "id": 1,
+            "name": "Пример организации",
+            "building_id": 5,
+            "activities": [
+                {
+                    "id": 1,
+                    "name": "Основная деятельность"
+                }
+            ]
+        }
+    ]
+    ```
+    """
     where = Organization.building_id == building_id
     return await get_organizations_by_filter(session, where, limit, offset)
 
 
-@router.get("/by_location", response_model=List[OrganizationRead])
+@router.get(
+    "/by_location",
+    response_model=List[OrganizationRead],
+    summary="Получает организации по координатам"
+)
 async def get_organizations_by_location(
     params: LocationQuery = Depends(),
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_async_session),
 ):
-    """Получение организации по координатам (радиус или прямоугольник)."""
+    """
+    Получает список организаций в заданной географической области.
+
+    ## Параметры
+    - **lat**: Широта центра поиска
+    - **lon**: Долгота центра поиска
+    - **radius**: Радиус поиска в градусах
+    (если задан, игнорирует параметры min/max)
+    - **min_lat/max_lat**: Минимальная и максимальная широта
+    - **min_lon/max_lon**: Минимальная и максимальная долгота
+
+    ## Ограничения
+    - Должны быть заданы либо **radius**, либо все параметры min/max
+    """
     query = select(Organization).join(Building)
     if params.radius is not None:
         query = query.where(
             ((Building.latitude - params.lat) *
-            (Building.latitude - params.lat) +
-            (Building.longitude - params.lon) *
-            (Building.longitude - params.lon)) <=
+             (Building.latitude - params.lat) +
+             (Building.longitude - params.lon) *
+             (Building.longitude - params.lon)) <=
             (params.radius * params.radius)
         )
     elif None not in (
@@ -219,21 +329,37 @@ async def get_organizations_by_location(
     return result.scalars().all()
 
 
-@router.get("/search", response_model=List[OrganizationRead])
+@router.get(
+    "/search", response_model=List[OrganizationRead],
+    summary="Поиск организаций по названию"
+)
 async def search_organizations(
     name: str,
     limit: int = 100,
     offset: int = 0,
     session: AsyncSession = Depends(get_async_session)
 ):
-    """Поиск организаций по названию с пагинацией."""
+    """
+    Выполняет поиск организаций по части названия.
+
+    ## Параметры
+    - **name**: Строка для поиска в названиях организаций
+    - **limit**: Максимальное количество возвращаемых записей
+    (по умолчанию 100)
+    - **offset**: Смещение от начала списка (по умолчанию 0)
+
+    ## Пример
+    Запрос `/organizations/search?name=медицина` вернет все организации,
+    содержащие слово "медицина" в названии.
+    """
     where = Organization.name.ilike(f"%{name}%")
     return await get_organizations_by_filter(session, where, limit, offset)
 
 
 @router.get(
     "/by_activity_tree/{activity_id}",
-    response_model=List[OrganizationRead]
+    response_model=List[OrganizationRead],
+    summary="Получает организации по дереву видов деятельности"
 )
 async def get_organizations_by_activity_tree(
     activity_id: int,
@@ -242,8 +368,17 @@ async def get_organizations_by_activity_tree(
     session: AsyncSession = Depends(get_async_session)
 ):
     """
-    Получение организации по виду деятельности
-    с учетом вложенности (до 3 уровней).
+    Получает организации по всему дереву видов деятельности
+    начиная с указанного.
+
+    ## Параметры
+    - **activity_id**: Идентификатор корневого вида деятельности
+    - **limit**: Максимальное количество возвращаемых записей
+    (по умолчанию 100)
+    - **offset**: Смещение от начала списка (по умолчанию 0)
+
+    ## Примечание
+    Поиск производится до 3 уровней вложенности в дереве видов деятельности.
     """
     return await _get_by_activity_id(
         activity_id, session,
