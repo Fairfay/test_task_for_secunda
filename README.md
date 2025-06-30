@@ -45,6 +45,6 @@ Swagger находится по адресу - http://127.0.0.1:8000/docs
 
 Redoc находится по адресу - http://127.0.0.1:8000/redoc
 
-Для авторизации в swagger необходимо нажать authorize и в поле APIKeyHeader (apiKey) внести секретный ключ
+Для авторизации в swagger необходимо нажать authorize и в поле APIKeyHeader (apiKey) внести секретный ключ (API_KEY)
 
 Дополнительные команды можно посмотреть в Makefile
