@@ -191,9 +191,11 @@ async def get_organizations_by_location(
     query = select(Organization).join(Building)
     if params.radius is not None:
         query = query.where(
-            ((Building.latitude - params.lat) ** 2 + (
-                Building.longitude - params.lon
-            ) ** 2) <= (params.radius ** 2)
+            ((Building.latitude - params.lat) *
+            (Building.latitude - params.lat) +
+            (Building.longitude - params.lon) *
+            (Building.longitude - params.lon)) <=
+            (params.radius * params.radius)
         )
     elif None not in (
         params.min_lat, params.max_lat,
