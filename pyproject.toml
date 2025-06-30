@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "test_task_for_secunda"
+version = "0.1.0"
+description = "Test task for Secunda"
+authors = ["Tychin Denis"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+fastapi = "^0.115.14"
+uvicorn = {extras = ["standard"], version = "^0.35.0"}
+sqlalchemy = "^2.0.41"
+aiosqlite = "^0.21.0"
+alembic = "^1.16.2"
+python-multipart = "^0.0.20"
+fastapi-users = {extras = ["sqlalchemy"], version = "^14.0.1"}
+email-validator = "^2.2.0"
+pydantic-settings = "^2.10.1"
+asyncpg = "^0.30.0"
+httpx = "^0.28.1"
+pytest = "^8.4.1"
+pytest-asyncio = "^1.0.0"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

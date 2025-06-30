@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  db:
+    image: postgres
+    volumes:
+      - ./data/db/:/var/lib/postgresql/data
+    restart: always
+    env_file: ./.env
+    networks:
+      - postgresnet
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - ENVIRONMENT=development
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+    env_file: ./.env
+    networks:
+      - postgresnet
+    command: sh start-development.sh
+
+networks:
+  postgresnet:
